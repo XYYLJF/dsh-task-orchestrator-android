@@ -1,0 +1,40 @@
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 构建产物
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+# 工具脚本（含 npm shim）
+tools/
+
+# 原生工程中间产物
+android/.idea/
+android/local.properties
+
+# 签名（调试签名与发布签名均不提交）
+*.keystore
+*.jks
+android/app/debug.keystore
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境
+.env
+.env.*
+
+# 测试
+coverage/
+
+# IDE
+.vscode/
+.idea/

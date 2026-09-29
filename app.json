@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "DSH 任务编排",
+    "slug": "dsh-task-orchestrator",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dsh.taskorchestrator",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.dsh.taskorchestrator"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "./plugins/withAndroidAccessibility"
+    ]
+  }
+}

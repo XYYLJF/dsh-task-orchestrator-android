@@ -1,0 +1,5 @@
+<resources>
+  <string name="app_name">DSH 任务编排</string>
+  <string name="accessibility_service_description">帮助用户自动化重复操作，读屏数据仅本地处理、不外传</string>
+  <string name="accessibility_service_label">DSH 任务编排无障碍服务</string>
+</resources>
