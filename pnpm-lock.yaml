@@ -14,9 +14,15 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: latest
         version: 1.5.1(zod@4.6.5)
+      '@babel/runtime':
+        specifier: ^7.29.7
+        version: 7.29.7
       expo:
         specifier: ~52.0.49
         version: 52.0.49(patch_hash=5a0d6180122ad30d36e529f6e4797662c644e93df187715c2ef3c7e5c03dbb49)(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.76.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)
+      expo-asset:
+        specifier: ~11.0.5
+        version: 11.0.5(expo@52.0.49(patch_hash=5a0d6180122ad30d36e529f6e4797662c644e93df187715c2ef3c7e5c03dbb49)(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.76.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1))(react-native@0.76.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)
       expo-secure-store:
         specifier: ~14.0.0
         version: 14.0.0(expo@52.0.49(patch_hash=5a0d6180122ad30d36e529f6e4797662c644e93df187715c2ef3c7e5c03dbb49)(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.76.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1))
@@ -45,6 +51,9 @@ importers:
       '@types/react':
         specifier: ~18.3.12
         version: 18.3.31
+      babel-preset-expo:
+        specifier: ~12.0.12
+        version: 12.0.12(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@26.6.3)
@@ -6266,7 +6275,7 @@ snapshots:
       '@react-native/babel-plugin-codegen': 0.76.9(@babel/preset-env@7.29.7(@babel/core@7.29.7))
       babel-plugin-syntax-hermes-parser: 0.25.1
       babel-plugin-transform-flow-enums: 0.0.2(@babel/core@7.29.7)
-      react-refresh: 0.14.2
+      react-refresh: 0.14.0
     transitivePeerDependencies:
       - '@babel/preset-env'
       - supports-color

@@ -101,6 +101,15 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // release 签名：从环境变量读取（密码不入库、不入 gradle.properties，见 android-note/release-signing-config.md）
+        release {
+            if (System.getenv("DSH_KEYSTORE_PATH") != null) {
+                storeFile file(System.getenv("DSH_KEYSTORE_PATH"))
+                storePassword System.getenv("DSH_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("DSH_KEY_ALIAS") ?: "dsh-release"
+                keyPassword System.getenv("DSH_KEY_PASSWORD")
+            }
+        }
     }
     buildTypes {
         debug {
@@ -109,7 +118,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
