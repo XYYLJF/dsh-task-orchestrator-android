@@ -4,7 +4,7 @@
  * 目标：单测覆盖 ≥90%（验收④-3）。
  */
 
-import { FlowExecutor, Flow, Step, AccessibilityEngine } from "./executor";
+import { FlowExecutor, Flow, Step } from "./executor";
 import type { AccessibilityEngine as Engine } from "../automation/engine";
 
 /** 内存版引擎桩：记录调用、可注入失败 */

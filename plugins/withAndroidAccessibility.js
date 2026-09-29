@@ -49,6 +49,16 @@ function withAccessibilityServicePermission(config) {
         $: { "android:name": ACCESSIBILITY_PERMISSION },
       });
     }
+    // 阶段4：前台服务保活权限（刑部 P1 落地）
+    const fgPerm = "android.permission.FOREGROUND_SERVICE";
+    const hasFg = manifest["uses-permission"].some(
+      (p) => p.$ && p.$["android:name"] === fgPerm,
+    );
+    if (!hasFg) {
+      manifest["uses-permission"].push({
+        $: { "android:name": fgPerm },
+      });
+    }
     return config;
   });
 }
@@ -77,6 +87,10 @@ function withAccessibilityServiceNode(config) {
         </intent-filter>
         <meta-data android:name="android.accessibilityservice"
             android:resource="@xml/accessibility_service_config"/>
+    </service>
+    <service android:name=".AutomationForegroundService"
+        android:exported="false"
+        android:foregroundServiceType="specialUse">
     </service>
 `;
 
@@ -121,6 +135,7 @@ function withAccessibilityNativeFiles(config) {
       const serviceSrc = path.join(noteDir, "AutomationAccessibilityService.kt");
       const moduleSrc = path.join(noteDir, "AutomationAccessibilityModule.kt");
       const packageSrc = path.join(noteDir, "AutomationAccessibilityPackage.kt");
+      const foregroundSrc = path.join(noteDir, "AutomationForegroundService.kt");
 
       if (fs.existsSync(serviceSrc)) {
         fs.writeFileSync(
@@ -138,6 +153,12 @@ function withAccessibilityNativeFiles(config) {
         fs.writeFileSync(
           path.join(kotlinDir, "AutomationAccessibilityPackage.kt"),
           fs.readFileSync(packageSrc, "utf8"),
+        );
+      }
+      if (fs.existsSync(foregroundSrc)) {
+        fs.writeFileSync(
+          path.join(kotlinDir, "AutomationForegroundService.kt"),
+          fs.readFileSync(foregroundSrc, "utf8"),
         );
       }
 
