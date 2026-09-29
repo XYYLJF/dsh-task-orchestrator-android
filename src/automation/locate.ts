@@ -13,6 +13,8 @@ export interface TreeNode {
   text?: string;
   viewId?: string;
   contentDescription?: string;
+  /** 是否可编辑（用于输入降级判断：不可编辑则走剪贴板） */
+  editable?: boolean;
   bounds?: { left: number; top: number; right: number; bottom: number };
   children?: TreeNode[];
 }
@@ -194,13 +196,16 @@ export function buildGesture(spec: GestureSpec): GestureStroke[] {
 /**
  * 文本输入（纯函数决策）：返回输入方式决策（优先 ACTION_SET_TEXT，
  * 不可编辑节点则降级剪贴板）。实际 ACTION_SET_TEXT 由原生层执行。
+ * editable 字段由节点树提供（对应兵部测试契约 TXT-02/03）。
  */
 export function decideInputMode(node: TreeNode | undefined): {
   mode: "setText" | "clipboard";
   reason?: string;
 } {
   if (!node) return { mode: "clipboard", reason: "节点不存在" };
-  // 无明确可编辑标记时，优先 setText；真实可编辑性由原生层判断
+  if (node.editable === false) {
+    return { mode: "clipboard", reason: "节点不可编辑" };
+  }
   return { mode: "setText" };
 }
 

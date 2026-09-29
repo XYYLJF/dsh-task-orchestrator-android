@@ -11,18 +11,20 @@ buildscript {
         ndkVersion = "26.1.10909125"
     }
     repositories {
-        // AGP 及插件依赖 google() 直连优先（阿里云 gradle-plugin/google 镜像对 AGP 传递依赖不完整，
-        // 曾致 singleVariant 静默失效；必要联网已获用户认可）
+        // AGP 依赖 google() 直连优先（阿里云 gradle-plugin/google 镜像对 AGP 传递依赖不完整）；
+        // Kotlin 等 central 依赖走阿里云（Maven Central 直连易 Connection reset）
         google()
-        mavenCentral()
-        maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        mavenCentral()
     }
     dependencies {
         classpath('com.android.tools.build:gradle')
         classpath('com.facebook.react:react-native-gradle-plugin')
-        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+        // 固定 Kotlin 1.9.25：expo-modules-core 的 Compose Compiler 1.5.15 要求 1.9.25，
+        // RN 插件默认 1.9.24 导致 compileDebugKotlin 版本兼容报错
+        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25')
     }
 }
 
@@ -41,10 +43,10 @@ allprojects {
 
         // AGP 传递依赖 google() 直连优先（同 buildscript 处说明）
         google()
-        mavenCentral()
-        maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/public' }
+        mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
 }

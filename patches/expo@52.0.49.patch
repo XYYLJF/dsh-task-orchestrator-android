@@ -1,0 +1,51 @@
+diff --git a/react-native.config.js b/react-native.config.js
+index 62eba2a93ddf0c53ae66985cbb7f7f9fa7219dcc..1a899b837b80259b711edbf8827fcc09f3024a98 100644
+--- a/react-native.config.js
++++ b/react-native.config.js
+@@ -1,8 +1,14 @@
+-const findProjectRootSync = require('expo-modules-autolinking/exports').findProjectRootSync;
+ const fs = require('fs');
+ const path = require('path');
+ 
+-const projectRoot = findProjectRootSync();
++let projectRoot = null;
++try {
++  projectRoot = require('expo-modules-autolinking/exports').findProjectRootSync();
++} catch (e) {
++  // hoisted (pnpm) 布局下 expo-modules-autolinking/exports 子路径解析可能失败：
++  // 回退 projectRoot=null，由下方条件容错为 managed app 默认值。
++  projectRoot = null;
++}
+ 
+ function isMatchedInFile(filePath, regexp) {
+   const contents = fs.readFileSync(filePath, 'utf8');
+@@ -13,6 +19,10 @@ function isMatchedInFile(filePath, regexp) {
+  * Checks if expo-modules-autolinking is setup on iOS
+  */
+ function isExpoModulesInstalledIos(projectRoot) {
++  if (!projectRoot) {
++    // Assumes true for managed apps
++    return true;
++  }
+   const podfilePath = path.join(projectRoot, 'ios', 'Podfile');
+   if (!fs.existsSync(podfilePath)) {
+     // Assumes true for managed apps
+@@ -25,6 +35,10 @@ function isExpoModulesInstalledIos(projectRoot) {
+  * Checks if expo-modules-autolinking is setup on Android
+  */
+ function isExpoModulesInstalledAndroid(projectRoot) {
++  if (!projectRoot) {
++    // Assumes true for managed apps
++    return true;
++  }
+   const gradlePath = path.join(projectRoot, 'android', 'settings.gradle');
+   if (!fs.existsSync(gradlePath)) {
+     // Assumes true for managed apps
+@@ -42,6 +56,7 @@ module.exports = {
+         ? null
+         : {
+             packageImportPath: 'import expo.modules.ExpoModulesPackage;',
++            packageInstance: 'new ExpoModulesPackage()',
+           },
+       macos: null,
+       windows: null,
