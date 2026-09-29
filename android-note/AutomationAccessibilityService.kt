@@ -40,12 +40,9 @@ class AutomationAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        serviceInfo = serviceInfo.apply {
-            flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
-            capabilityNames = listOf(
-                "android.accessibilityservice.AccessibilityServiceInfo.capabilityCanPerformGestures",
-            )
-        }
+        val info = serviceInfo ?: return
+        // capabilities 由系统按 accessibility_service_config.xml 的 canPerformGestures=true 自动计算，无需手动设置
+        info.flags = info.flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

@@ -41,7 +41,11 @@ dependencyResolutionManagement {
 }
 
 apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle");
-useExpoModules()
+// 显式传 searchPaths：避免 resolve 因 android/package.json 存在而误判项目根（RN projectConfig 需要 android/package.json，
+// 而 expo autolinking resolve 从 workingDir=android/ 向上 findUp package.json 会误定位到 android/）
+useExpoModules([
+  searchPaths: [new File(rootDir.parent, 'node_modules').toString()]
+])
 
 include ':app'
 includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile())

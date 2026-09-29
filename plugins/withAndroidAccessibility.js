@@ -1,10 +1,14 @@
 /**
- * Expo config plugin —— 注入原生 Android 无障碍服务（R5 选型验证 · 真实实现）
+ * Expo config plugin —— 注入原生 Android 无障碍服务 + 桥接模块（阶段2 G3 引擎）
  *
- * 在 `expo prebuild` 时完成三件事：
+ * 在 `expo prebuild` 时完成：
  * 1. 向 AndroidManifest.xml 注入 BIND_ACCESSIBILITY_SERVICE 权限；
  * 2. 向 AndroidManifest.xml 注入 <service> 节点（无障碍服务声明 + intent-filter + meta-data）；
- * 3. 写入 Kotlin 服务类 + res/xml/accessibility_service_config.xml（通过 withDangerousMod 直接操作 android/ 工程）。
+ * 3. 从 android-note/ 读取 Kotlin 源码（AutomationAccessibilityService.kt /
+ *    AutomationAccessibilityModule.kt）写入 android 工程，并写 res/xml 配置 + strings。
+ *
+ * 单一来源原则：Kotlin 源码以 android-note/ 为准（plugin 运行时读取注入），
+ * 避免内嵌字符串与源文件漂移。
  *
  * 用法：app.json 的 plugins 数组已注册 "./plugins/withAndroidAccessibility"。
  */
@@ -18,7 +22,6 @@ const {
 
 const ACCESSIBILITY_PERMISSION =
   "android.permission.BIND_ACCESSIBILITY_SERVICE";
-const SERVICE_NAME = ".AutomationAccessibilityService";
 
 // 无障碍服务配置 XML（accessibilityEventTypes / feedbackType / canRetrieveWindowContent 等）
 const ACCESSIBILITY_SERVICE_CONFIG_XML = `<?xml version="1.0" encoding="utf-8"?>
@@ -30,59 +33,6 @@ const ACCESSIBILITY_SERVICE_CONFIG_XML = `<?xml version="1.0" encoding="utf-8"?>
     android:canPerformGestures="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="100" />
-`;
-
-// Kotlin 无障碍服务类（最小可验证实现）
-const ACCESSIBILITY_SERVICE_KOTLIN = `package com.dsh.taskorchestrator
-
-import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
-
-class AutomationAccessibilityService : AccessibilityService() {
-
-    override fun onServiceConnected() {
-        super.onServiceConnected()
-        serviceInfo = serviceInfo.apply {
-            flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
-        }
-    }
-
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // 阶段 2 实现完整引擎，此处为最小占位
-    }
-
-    override fun onInterrupt() {}
-
-    /** R5 判定标准③：dispatchGesture 点击注入一例 */
-    fun performTap(x: Float, y: Float): Boolean {
-        val path = Path().apply { moveTo(x, y) }
-        val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
-            .build()
-        return dispatchGesture(gesture, null, null)
-    }
-
-    /** 读屏：抓取当前窗口根节点文本（仅本地、即时丢弃、不落盘不外发） */
-    fun dumpActiveWindowText(): String {
-        val root = rootInActiveWindow ?: return ""
-        val sb = StringBuilder()
-        collectText(root, sb)
-        return sb.toString()
-    }
-
-    private fun collectText(node: AccessibilityNodeInfo, sb: StringBuilder) {
-        if (!node.text.isNullOrEmpty()) {
-            sb.append(node.text).append('\\n')
-        }
-        for (i in 0 until node.childCount) {
-            node.getChild(i)?.let { collectText(it, sb) }
-        }
-    }
-}
 `;
 
 function withAccessibilityServicePermission(config) {
@@ -105,7 +55,7 @@ function withAccessibilityServicePermission(config) {
 
 function withAccessibilityServiceNode(config) {
   // 改用 withDangerousMod 直接文本操作 manifest（withAndroidManifest 写 service 节点
-  // 在 expo manifest 合成环节会丢失 application 子节点引用，见 lead 二验诊断）。
+  // 在 expo manifest 合成环节会丢失 application 子节点引用）。
   return withDangerousMod(config, [
     "android",
     async (config) => {
@@ -132,12 +82,10 @@ function withAccessibilityServiceNode(config) {
 
       let manifestContent = fs.readFileSync(manifestPath, "utf8");
 
-      // 若已存在则跳过，避免重复插入
       if (manifestContent.includes("AutomationAccessibilityService")) {
         return config;
       }
 
-      // 在 </application> 前插入 service 节点
       const closeTag = "</application>";
       const idx = manifestContent.lastIndexOf(closeTag);
       if (idx === -1) {
@@ -159,20 +107,8 @@ function withAccessibilityNativeFiles(config) {
     "android",
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
-      const mainDir = path.join(
-        projectRoot,
-        "android",
-        "app",
-        "src",
-        "main",
-      );
-      const kotlinDir = path.join(
-        mainDir,
-        "java",
-        "com",
-        "dsh",
-        "taskorchestrator",
-      );
+      const mainDir = path.join(projectRoot, "android", "app", "src", "main");
+      const kotlinDir = path.join(mainDir, "java", "com", "dsh", "taskorchestrator");
       const xmlDir = path.join(mainDir, "res", "xml");
       const valuesDir = path.join(mainDir, "res", "values");
 
@@ -180,11 +116,46 @@ function withAccessibilityNativeFiles(config) {
       fs.mkdirSync(xmlDir, { recursive: true });
       fs.mkdirSync(valuesDir, { recursive: true });
 
-      // 写入 Kotlin 服务类
-      fs.writeFileSync(
-        path.join(kotlinDir, "AutomationAccessibilityService.kt"),
-        ACCESSIBILITY_SERVICE_KOTLIN,
-      );
+      // 单一来源：从 android-note/ 读取 Kotlin 源码注入
+      const noteDir = path.join(projectRoot, "android-note");
+      const serviceSrc = path.join(noteDir, "AutomationAccessibilityService.kt");
+      const moduleSrc = path.join(noteDir, "AutomationAccessibilityModule.kt");
+      const packageSrc = path.join(noteDir, "AutomationAccessibilityPackage.kt");
+
+      if (fs.existsSync(serviceSrc)) {
+        fs.writeFileSync(
+          path.join(kotlinDir, "AutomationAccessibilityService.kt"),
+          fs.readFileSync(serviceSrc, "utf8"),
+        );
+      }
+      if (fs.existsSync(moduleSrc)) {
+        fs.writeFileSync(
+          path.join(kotlinDir, "AutomationAccessibilityModule.kt"),
+          fs.readFileSync(moduleSrc, "utf8"),
+        );
+      }
+      if (fs.existsSync(packageSrc)) {
+        fs.writeFileSync(
+          path.join(kotlinDir, "AutomationAccessibilityPackage.kt"),
+          fs.readFileSync(packageSrc, "utf8"),
+        );
+      }
+
+      // 注册 AutomationAccessibilityPackage 到 MainApplication.getPackages
+      const mainAppPath = path.join(kotlinDir, "MainApplication.kt");
+      if (fs.existsSync(mainAppPath)) {
+        let mainContent = fs.readFileSync(mainAppPath, "utf8");
+        if (
+          !mainContent.includes("AutomationAccessibilityPackage()") &&
+          mainContent.includes("val packages = PackageList(this).packages")
+        ) {
+          mainContent = mainContent.replace(
+            "val packages = PackageList(this).packages",
+            "val packages = PackageList(this).packages\n            packages.add(AutomationAccessibilityPackage())",
+          );
+          fs.writeFileSync(mainAppPath, mainContent);
+        }
+      }
 
       // 写入无障碍服务配置 XML
       fs.writeFileSync(
@@ -192,7 +163,7 @@ function withAccessibilityNativeFiles(config) {
         ACCESSIBILITY_SERVICE_CONFIG_XML,
       );
 
-      // 追加字符串资源（accessibility_service_description）
+      // 追加字符串资源（accessibility_service_description / accessibility_service_label）
       const stringsPath = path.join(valuesDir, "strings.xml");
       let stringsContent;
       if (fs.existsSync(stringsPath)) {
@@ -201,24 +172,18 @@ function withAccessibilityNativeFiles(config) {
         stringsContent = `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n`;
       }
       if (!stringsContent.includes("accessibility_service_description")) {
-        const injected = `<string name="accessibility_service_description">帮助用户自动化重复操作，读屏数据仅本地处理、不外传</string>`;
         stringsContent = stringsContent.replace(
           "</resources>",
-          `    ${injected}\n</resources>`,
+          `    <string name="accessibility_service_description">帮助用户自动化重复操作，读屏数据仅本地处理、不外传</string>\n</resources>`,
         );
-        fs.writeFileSync(stringsPath, stringsContent);
       }
-
-      // 追加 service label 字符串（供 <service android:label> 引用，避免中文直写 AAPT 告警）
-      stringsContent = fs.readFileSync(stringsPath, "utf8");
       if (!stringsContent.includes("accessibility_service_label")) {
-        const labelXml = `<string name="accessibility_service_label">DSH 任务编排无障碍服务</string>`;
         stringsContent = stringsContent.replace(
           "</resources>",
-          `    ${labelXml}\n</resources>`,
+          `    <string name="accessibility_service_label">DSH 任务编排无障碍服务</string>\n</resources>`,
         );
-        fs.writeFileSync(stringsPath, stringsContent);
       }
+      fs.writeFileSync(stringsPath, stringsContent);
 
       return config;
     },
