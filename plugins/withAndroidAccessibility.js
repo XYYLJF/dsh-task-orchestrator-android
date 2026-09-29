@@ -69,6 +69,19 @@ function withAccessibilityServicePermission(config) {
         $: { "android:name": fgSpecialUsePerm },
       });
     }
+    // 刑部 release 最终裁定：READ/WRITE_EXTERNAL_STORAGE 改判「接受」（无害冗余）。
+    // 此处仅 filter 删除 expo 模板自带的普通节点；expo-file-system AAR 经 manifest merge
+    // 带入的无法稳定移除（tools:node 两条路均失效），但 targetSdk 34 下系统已废弃、
+    // 不授予不处理，属无害冗余，刑部已接受并在审查意见如实注明。
+    const removePerms = [
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+    ];
+    for (const rp of removePerms) {
+      manifest["uses-permission"] = manifest["uses-permission"].filter(
+        (p) => !(p.$ && p.$["android:name"] === rp),
+      );
+    }
     return config;
   });
 }
@@ -102,13 +115,14 @@ function withAccessibilityServiceNode(config) {
         android:exported="false"
         android:foregroundServiceType="specialUse">
         <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-            android:value="保持无障碍服务与任务编排在后台运行"/>
+            android:value="Keep accessibility service and task orchestration running in background"/>
     </service>
 `;
 
       let manifestContent = fs.readFileSync(manifestPath, "utf8");
 
       if (manifestContent.includes("AutomationAccessibilityService")) {
+        fs.writeFileSync(manifestPath, manifestContent);
         return config;
       }
 
@@ -207,13 +221,13 @@ function withAccessibilityNativeFiles(config) {
       if (!stringsContent.includes("accessibility_service_description")) {
         stringsContent = stringsContent.replace(
           "</resources>",
-          `    <string name="accessibility_service_description">帮助用户自动化重复操作，读屏数据仅本地处理、不外传</string>\n</resources>`,
+          `    <string name="accessibility_service_description">Automates repetitive operations; screen data processed locally only, never stored or transmitted</string>\n</resources>`,
         );
       }
       if (!stringsContent.includes("accessibility_service_label")) {
         stringsContent = stringsContent.replace(
           "</resources>",
-          `    <string name="accessibility_service_label">DSH 任务编排无障碍服务</string>\n</resources>`,
+          `    <string name="accessibility_service_label">DSH Task Orchestrator Accessibility Service</string>\n</resources>`,
         );
       }
       fs.writeFileSync(stringsPath, stringsContent);
