@@ -59,6 +59,16 @@ function withAccessibilityServicePermission(config) {
         $: { "android:name": fgPerm },
       });
     }
+    // 刑部 N1：specialUse 前台服务类型需配套权限（Android 14 targetSdk 34）
+    const fgSpecialUsePerm = "android.permission.FOREGROUND_SERVICE_SPECIAL_USE";
+    const hasFgSpecial = manifest["uses-permission"].some(
+      (p) => p.$ && p.$["android:name"] === fgSpecialUsePerm,
+    );
+    if (!hasFgSpecial) {
+      manifest["uses-permission"].push({
+        $: { "android:name": fgSpecialUsePerm },
+      });
+    }
     return config;
   });
 }
@@ -91,6 +101,8 @@ function withAccessibilityServiceNode(config) {
     <service android:name=".AutomationForegroundService"
         android:exported="false"
         android:foregroundServiceType="specialUse">
+        <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+            android:value="保持无障碍服务与任务编排在后台运行"/>
     </service>
 `;
 
