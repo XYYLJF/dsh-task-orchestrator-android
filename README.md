@@ -143,6 +143,6 @@ pnpm android
 
 ## 许可证
 
-本仓库暂按 [Apache License 2.0](./LICENSE) 出具（兼顾专利条款）；**待用户最终确认**，亦可按用户选择更换为更宽松的 MIT 许可。确认后移除本提示。
+本项目采用 [Apache License 2.0](./LICENSE)（兼顾专利条款）。
 
 > 许可证正文见 [LICENSE](./LICENSE)。
